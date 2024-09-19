@@ -1,0 +1,84 @@
+name: Build and deploy emscripten artifacts to Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 15 * * *' # every day at 15:00 UTC
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -yqq
+          sudo apt-get install -yqq build-essential cmake ninja-build
+
+      - name: Checkout Base Site
+        uses: actions/checkout@v4
+        with:
+          path: base
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'AlisterT/OpenJazz'
+          ref: feature/emscripten # remove me later
+          path: source
+
+      - name: Check if build needed
+        id: check
+        run: |
+          git -C base   log --since='1 day ago' --oneline >  .new-commits
+          git -C source log --since='1 day ago' --oneline >> .new-commits
+          echo "new=$(wc -l < .new-commits)" >> $GITHUB_OUTPUT
+          rm .new-commits
+
+      - name: Setup emsdk
+        if: steps.check.outputs.new != '0'
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Build with emscripten
+        if: steps.check.outputs.new != '0'
+        run: |
+          emcmake cmake -B build-web source -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DDATAPATH=/data -DNETWORK=OFF
+          cmake --build build-web
+
+      - name: Prepare site
+        if: steps.check.outputs.new != '0'
+        run: |
+          mkdir -p _site
+          mv build-web/*.{js,wasm} _site # engine
+          mv base/* _site # data
+          # duplicate web page
+          for version in shareware holiday-hare holiday-hare95; do
+            sed "s/data.js/${version}.js/" build-web/OpenJazz.html > _site/$version.html
+          done
+          ln -s shareware.html _site/index.html # make shareware default
+
+      - name: Upload artifact
+        if: steps.check.outputs.new != '0'
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

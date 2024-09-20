@@ -34,7 +34,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'AlisterT/OpenJazz'
-          ref: feature/emscripten # remove me later
           path: source
 
       - name: Check if build needed

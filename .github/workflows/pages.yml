@@ -70,9 +70,12 @@ jobs:
       - name: Upload artifact
         if: steps.check.outputs.new != '0'
         uses: actions/upload-pages-artifact@v3
+    outputs:
+      new: ${{ steps.check.outputs.new }}
 
   deploy:
     needs: build
+    if: needs.build.outputs.new != '0'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

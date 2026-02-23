@@ -52,7 +52,7 @@ jobs:
           repository: 'AlisterT/OpenJazz'
 
       - name: Build Doxygen documentation
-        uses: mattnotmitt/doxygen-action@v1.8
+        uses: mattnotmitt/doxygen-action@v1.12
         with:
           doxyfile-path: 'doc'
 

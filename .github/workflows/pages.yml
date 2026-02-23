@@ -1,4 +1,4 @@
-name: Build and deploy emscripten artifacts to Pages
+name: Build and deploy artifacts to Pages
 
 on:
   push:
@@ -46,21 +46,26 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.check.outputs.new != '0'
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -yqq
+          sudo apt-get install -yqq doxygen graphviz fonts-freefont-ttf
+
       - name: Checkout Source
         uses: actions/checkout@v4
         with:
           repository: 'AlisterT/OpenJazz'
 
       - name: Build Doxygen documentation
-        uses: mattnotmitt/doxygen-action@v1.8
-        with:
-          doxyfile-path: 'doc'
+        run: |
+          cd doc
+          doxygen
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: build-doxygen
-          path: html/*.*
+          path: doc/html/
 
   build-emscripten:
     needs: check
@@ -75,9 +80,14 @@ jobs:
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14
 
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'AlisterT/OpenJazz'
+
       - name: Build with emscripten
         run: |
-          emcmake cmake -B build-web source -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          emcmake cmake -B build-web . -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DDATAPATH=/data -DNETWORK=OFF
           cmake --build build-web
 
@@ -107,6 +117,9 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
+          # disable jekyll
+          touch _site/.nojekyll
+          # web port
           mv build-web/*.{js,wasm} _site # engine
           mv base/* _site # data
           # duplicate web page

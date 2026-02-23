@@ -17,14 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -yqq
-          sudo apt-get install -yqq build-essential cmake ninja-build
-
       - name: Checkout Base Site
         uses: actions/checkout@v4
         with:
@@ -43,20 +38,73 @@ jobs:
           git -C source log --since='1 day ago' --oneline >> .new-commits
           echo "new=$(wc -l < .new-commits)" >> $GITHUB_OUTPUT
           rm .new-commits
+    outputs:
+      new: ${{ steps.check.outputs.new }}
+
+  build-doxygen:
+    needs: check
+    runs-on: ubuntu-latest
+    if: needs.check.outputs.new != '0'
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        with:
+          repository: 'AlisterT/OpenJazz'
+
+      - name: Build Doxygen documentation
+        uses: mattnotmitt/doxygen-action@v1.8
+        with:
+          doxyfile-path: 'doc'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-doxygen
+          path: html/*.*
+
+  build-emscripten:
+    needs: check
+    runs-on: ubuntu-latest
+    if: needs.check.outputs.new != '0'
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -yqq
+          sudo apt-get install -yqq build-essential cmake ninja-build
 
       - name: Setup emsdk
-        if: steps.check.outputs.new != '0'
         uses: mymindstorm/setup-emsdk@v14
 
       - name: Build with emscripten
-        if: steps.check.outputs.new != '0'
         run: |
           emcmake cmake -B build-web source -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DDATAPATH=/data -DNETWORK=OFF
           cmake --build build-web
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-web
+          path: |
+            build-web/*.js
+            build-web/*.wasm
+            build-web/*.html
+
+  site:
+    needs:
+      - build-doxygen
+      - build-emscripten
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Base Site
+        uses: actions/checkout@v4
+        with:
+          path: base
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+
       - name: Prepare site
-        if: steps.check.outputs.new != '0'
         run: |
           mkdir -p _site
           mv build-web/*.{js,wasm} _site # engine
@@ -66,16 +114,14 @@ jobs:
             sed "s/data.js/${version}.js/" build-web/OpenJazz.html > _site/$version.html
           done
           ln -s shareware.html _site/index.html # make shareware default
+          # move doxygen in place
+          mv build-doxygen _site/doc
 
       - name: Upload artifact
-        if: steps.check.outputs.new != '0'
         uses: actions/upload-pages-artifact@v3
-    outputs:
-      new: ${{ steps.check.outputs.new }}
 
   deploy:
-    needs: build
-    if: needs.build.outputs.new != '0'
+    needs: site
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

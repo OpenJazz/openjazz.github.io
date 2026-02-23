@@ -21,12 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Base Site
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: base
 
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'AlisterT/OpenJazz'
           path: source
@@ -52,7 +52,7 @@ jobs:
           sudo apt-get install -yqq doxygen graphviz fonts-freefont-ttf
 
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'AlisterT/OpenJazz'
 
@@ -81,7 +81,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@v14
 
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'AlisterT/OpenJazz'
 
@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Base Site
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: base
 

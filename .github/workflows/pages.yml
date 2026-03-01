@@ -41,7 +41,7 @@ jobs:
     outputs:
       new: ${{ steps.check.outputs.new }}
 
-  build-doxygen:
+  build:
     needs: check
     runs-on: ubuntu-latest
     if: needs.check.outputs.new != '0'
@@ -49,33 +49,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -yqq
-          sudo apt-get install -yqq doxygen graphviz fonts-freefont-ttf
-
-      - name: Checkout Source
-        uses: actions/checkout@v6
-        with:
-          repository: 'AlisterT/OpenJazz'
-
-      - name: Build Doxygen documentation
-        run: |
-          cd doc
-          doxygen
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: build-doxygen
-          path: doc/html/
-
-  build-emscripten:
-    needs: check
-    runs-on: ubuntu-latest
-    if: needs.check.outputs.new != '0'
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -yqq
-          sudo apt-get install -yqq build-essential cmake ninja-build
+          sudo apt-get install -yqq build-essential cmake ninja-build \
+            doxygen graphviz fonts-freefont-ttf
 
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@v14
@@ -91,7 +66,7 @@ jobs:
             -DDATAPATH=/data -DNETWORK=OFF
           cmake --build build-web
 
-      - name: Upload artifact
+      - name: Upload WASM artifact
         uses: actions/upload-artifact@v6
         with:
           name: build-web
@@ -100,10 +75,17 @@ jobs:
             build-web/*.wasm
             build-web/*.html
 
+      - name: Build Doxygen documentation
+        run: cmake --build build-web --target doc
+
+      - name: Upload DOXYGEN artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-doxygen
+          path: build-web/doc/html/
+
   site:
-    needs:
-      - build-doxygen
-      - build-emscripten
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Base Site
@@ -130,7 +112,7 @@ jobs:
           # move doxygen in place
           mv build-doxygen _site/doc
 
-      - name: Upload artifact
+      - name: Upload artifact to GitHub pages
         uses: actions/upload-pages-artifact@v4
 
   deploy:

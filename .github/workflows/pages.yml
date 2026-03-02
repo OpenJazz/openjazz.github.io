@@ -67,7 +67,7 @@ jobs:
           cmake --build build-web
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: build-web
           path: |
@@ -79,7 +79,7 @@ jobs:
         run: cmake --build build-web --target doc
 
       - name: Upload DOXYGEN artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: build-doxygen
           path: build-web/doc/html/

@@ -21,12 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Base Site
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: base
 
       - name: Checkout Source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: 'AlisterT/OpenJazz'
           path: source
@@ -56,7 +56,7 @@ jobs:
         uses: mymindstorm/setup-emsdk@v16
 
       - name: Checkout Source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: 'AlisterT/OpenJazz'
 
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Base Site
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: base
 
